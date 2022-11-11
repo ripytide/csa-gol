@@ -31,20 +31,30 @@ func newWorld(width int, height int) World {
 
 // Run starts the processing of Game of Life.
 func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
-	world := readPgmImage(p.ImageWidth, p.ImageHeight)
+	world1 := readPgmImage(p.ImageWidth, p.ImageHeight)
+	world2 := newWorld(p.ImageWidth, p.ImageHeight)
 
 	for i := 0; i < p.Turns; i++ {
-		world = processOneTurn(world, p.ImageWidth, p.ImageHeight)
+		if i%2 == 0 {
+			world2 = processOneTurn(world1, world2, p.ImageWidth, p.ImageHeight)
+		} else {
+			world1 = processOneTurn(world2, world1, p.ImageWidth, p.ImageHeight)
+		}
+	}
+	var finalWorld World
+	if p.Turns%2 == 0 {
+		finalWorld = world1
+	} else {
+		finalWorld = world2
 	}
 
-	cells := worldToCells(world, p.ImageWidth, p.ImageHeight)
+	cells := worldToCells(finalWorld, p.ImageWidth, p.ImageHeight)
 	events <- FinalTurnComplete{CompletedTurns: p.Turns, Alive: cells}
 
 	close(events)
 }
 
-func processOneTurn(oldWorld World, width int, height int) World {
-	newWorld := newWorld(width, height)
+func processOneTurn(oldWorld World, newWorld World, width int, height int) World {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			neighbors := countNeigbours(oldWorld, x, y, width, height)
