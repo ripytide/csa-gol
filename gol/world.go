@@ -243,3 +243,45 @@ func readPgmImage(expected_dimensions Dimensions) World {
 
 	return world
 }
+
+func (world World) bareProcessOneTurn(newWorld World, threads int) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < threads; i++ {
+		range_x := Range{start: 0, end: world.dimensions.width}
+		range_y := get_sliced_range(i, threads, world.dimensions.height)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			world.barePartialProcessOneTurn(newWorld, range_x, range_y)
+		}()
+	}
+
+	wg.Wait()
+}
+
+func (world World) barePartialProcessOneTurn(newWorld World, range_x, range_y Range) {
+	for y := range_y.start; y < range_y.end; y++ {
+		for x := range_x.start; x < range_x.end; x++ {
+			world.bare_update_cell(newWorld, x, y)
+		}
+	}
+}
+
+func (world World) bare_update_cell(newWorld World, x int, y int) {
+	neighbors := world.countNeigbours(x, y)
+	if world.world[y][x] != 0 {
+		if neighbors < 2 || neighbors > 3 {
+			newWorld.world[y][x] = 0
+		} else {
+			newWorld.world[y][x] = world.world[y][x]
+		}
+	} else {
+		if neighbors == 3 {
+			newWorld.world[y][x] = 255
+		} else {
+			newWorld.world[y][x] = 0
+		}
+	}
+}
