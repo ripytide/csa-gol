@@ -1,6 +1,9 @@
 package gol
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Params provides the details of how to run the Game of Life and which image to load
 // from the image/ folder
@@ -41,5 +44,14 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 
 	events <- FinalTurnComplete{CompletedTurns: p.Turns, Alive: active_world.to_cells()}
 
+	filename := out_filename(active_world, p.Turns)
+	active_world.writePgmImage(filename)
+
+	events <- ImageOutputComplete{CompletedTurns: p.Turns, Filename: filename}
+
 	close(events)
+}
+
+func out_filename(world World, turns int) string {
+	return "out/" + fmt.Sprintf("%vx%vx%v.pgm", world.dimensions.width, world.dimensions.height, turns)
 }

@@ -125,7 +125,6 @@ func (world World) countNeigbours(x int, y int) int {
 	return neighbors
 }
 
-
 func wrap(v int, limit int) int {
 	if v < 0 {
 		return limit - 1
@@ -153,7 +152,7 @@ func get_sliced_range(position, threads, length int) Range {
 func (world World) writePgmImage(filename string) {
 	_ = os.Mkdir("out", os.ModePerm)
 
-	file, ioError := os.Create("out/" + filename + ".pgm")
+	file, ioError := os.Create(filename)
 	util.Check(ioError)
 	defer file.Close()
 
