@@ -1,5 +1,7 @@
 package gol
 
+import "time"
+
 // Params provides the details of how to run the Game of Life and which image to load
 // from the image/ folder
 type Params struct {
@@ -13,25 +15,31 @@ type Params struct {
 func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 	dimensions := Dimensions{width: p.ImageWidth, height: p.ImageHeight}
 
-	world1 := readPgmImage(dimensions)
-	world2 := newWorld(dimensions)
+	active_world := readPgmImage(dimensions)
+	other_world := newWorld(dimensions)
+
+	ticker := time.NewTicker(20 * time.Millisecond)
 
 	for i := 0; i < p.Turns; i++ {
-		if i%2 == 0 {
-			world1.processOneTurnWithThreads(world2, p.Threads)
-		} else {
-			world2.processOneTurnWithThreads(world1, p.Threads)
+		select {
+		case <-ticker.C:
+			//send the number of cells alive currently
+			CellsCount := len(active_world.to_cells())
+			events <- AliveCellsCount{CompletedTurns: i, CellsCount: CellsCount}
+		default:
 		}
-	}
-	var finalWorld World
-	if p.Turns%2 == 0 {
-		finalWorld = world1
-	} else {
-		finalWorld = world2
+
+		//do a turn
+		active_world.processOneTurnWithThreads(other_world, p.Threads)
+		//swap active and other
+		temp := active_world
+		active_world = other_world
+		other_world = temp
+
+		events <- TurnComplete{CompletedTurns: i + 1}
 	}
 
-	cells := finalWorld.to_cells()
-	events <- FinalTurnComplete{CompletedTurns: p.Turns, Alive: cells}
+	events <- FinalTurnComplete{CompletedTurns: p.Turns, Alive: active_world.to_cells()}
 
 	close(events)
 }
