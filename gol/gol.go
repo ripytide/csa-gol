@@ -29,15 +29,6 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 	quit := false
 
 	for i := 0; i < p.Turns && !quit; i++ {
-		//do a turn
-		active_world.processOneTurnWithThreads(other_world, p.Threads, events, i)
-		//swap active and other
-		temp := active_world
-		active_world = other_world
-		other_world = temp
-
-		events <- TurnComplete{CompletedTurns: i + 1}
-
 		loopy := true
 		for loopy {
 			select {
@@ -67,6 +58,16 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 				loopy = false
 			}
 		}
+
+		//do a turn
+		active_world.processOneTurnWithThreads(other_world, p.Threads, events, i)
+		//swap active and other
+		temp := active_world
+		active_world = other_world
+		other_world = temp
+
+		events <- TurnComplete{CompletedTurns: i + 1}
+
 	}
 
 	events <- FinalTurnComplete{CompletedTurns: p.Turns, Alive: active_world.to_cells()}
