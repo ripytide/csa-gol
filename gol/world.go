@@ -35,7 +35,7 @@ func newWorld(dimensions Dimensions) World {
 	return World{world, dimensions}
 }
 
-func (world World) processOneTurnWithThreads(newWorld World, threads int) {
+func (world World) processOneTurnWithThreads(newWorld World, threads int, events chan<- Event, CompletedTurns int) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < threads; i++ {
@@ -45,32 +45,63 @@ func (world World) processOneTurnWithThreads(newWorld World, threads int) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			world.partialProcessOneTurn(newWorld, range_x, range_y)
+			world.partialProcessOneTurn(newWorld, range_x, range_y, events, CompletedTurns)
 		}()
 	}
 
 	wg.Wait()
 }
 
-func (world World) partialProcessOneTurn(newWorld World, range_x, range_y Range) {
+func (world World) partialProcessOneTurn(newWorld World, range_x, range_y Range, events chan<- Event, CompletedTurns int) {
 	for y := range_y.start; y < range_y.end; y++ {
 		for x := range_x.start; x < range_x.end; x++ {
-			world.update_cell(newWorld, x, y)
+			world.update_cell(newWorld, x, y, events, CompletedTurns)
 		}
 	}
 }
 
-func (world World) update_cell(newWorld World, x int, y int) {
+func (world World) sendInitialCellFlips(threads int, events chan<- Event) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < threads; i++ {
+		range_x := Range{start: 0, end: world.dimensions.width}
+		range_y := get_sliced_range(i, threads, world.dimensions.height)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			world.partialSendInitialCellFlips(range_x, range_y, events)
+		}()
+	}
+
+	wg.Wait()
+}
+
+func (world World) partialSendInitialCellFlips(range_x, range_y Range, events chan<- Event) {
+	for y := range_y.start; y < range_y.end; y++ {
+		for x := range_x.start; x < range_x.end; x++ {
+			if world.world[y][x] != 0 {
+				events <- CellFlipped{CompletedTurns: 0, Cell: util.Cell{X: x, Y: y}}
+			}
+		}
+	}
+}
+
+func (world World) update_cell(newWorld World, x int, y int, events chan<- Event, CompletedTurns int) {
 	neighbors := world.countNeigbours(x, y)
 	if world.world[y][x] != 0 {
 		if neighbors < 2 || neighbors > 3 {
 			newWorld.world[y][x] = 0
+			//send flip event
+			events <- CellFlipped{CompletedTurns: CompletedTurns, Cell: util.Cell{X: x, Y: y}}
 		} else {
 			newWorld.world[y][x] = world.world[y][x]
 		}
 	} else {
 		if neighbors == 3 {
 			newWorld.world[y][x] = 255
+			//send flip event
+			events <- CellFlipped{CompletedTurns: CompletedTurns, Cell: util.Cell{X: x, Y: y}}
 		} else {
 			newWorld.world[y][x] = 0
 		}

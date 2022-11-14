@@ -21,6 +21,9 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 	active_world := readPgmImage(dimensions)
 	other_world := newWorld(dimensions)
 
+	//send initial cell flips
+	active_world.sendInitialCellFlips(p.Threads, events)
+
 	ticker := time.NewTicker(20 * time.Millisecond)
 
 	for i := 0; i < p.Turns; i++ {
@@ -33,7 +36,7 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 		}
 
 		//do a turn
-		active_world.processOneTurnWithThreads(other_world, p.Threads)
+		active_world.processOneTurnWithThreads(other_world, p.Threads, events, i)
 		//swap active and other
 		temp := active_world
 		active_world = other_world
