@@ -7,7 +7,7 @@ import (
 )
 
 func BenchEverything(filename string) {
-	turns := []int{0, 10, 100, 1000, 10000}
+	turns := []int{0, 1, 10, 100, 1000, 10000}
 	sizes := []int{256, 512}
 	threads := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 	for _, turn := range turns {
