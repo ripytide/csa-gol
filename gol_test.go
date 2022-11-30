@@ -20,8 +20,6 @@ func TestGol(t *testing.T) {
 	}
 	for _, p := range tests {
 		for _, turns := range []int{0, 1, 100} {
-			println("testwidth", p.ImageWidth)
-			println("turns", turns)
 			p.Turns = turns
 			expectedAlive := readAliveCells(
 				"check/images/"+fmt.Sprintf("%vx%vx%v.pgm", p.ImageWidth, p.ImageHeight, turns),
@@ -29,7 +27,6 @@ func TestGol(t *testing.T) {
 				p.ImageHeight,
 			)
 			for threads := 1; threads <= 16; threads++ {
-				println("threads", threads)
 				p.Threads = threads
 				testName := fmt.Sprintf("%dx%dx%d-%d", p.ImageWidth, p.ImageHeight, p.Turns, p.Threads)
 				t.Run(testName, func(t *testing.T) {
